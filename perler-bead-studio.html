@@ -142,8 +142,6 @@ body{
 }
 .sec-t::before{content:"";width:3px;height:12px;border-radius:2px;background:var(--accent)}
 .sec-t .tail{margin-left:auto;font-size:10px;color:var(--muted);font-weight:400;letter-spacing:0}
-.sub-t{font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:.5px;
-  border-top:1px dashed var(--line);padding-top:8px}
 
 .row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .row.wrap{flex-wrap:wrap}
@@ -172,7 +170,7 @@ label.lb{font-size:11.5px;color:var(--muted);flex:0 0 auto}
 .seg .btn:hover{background:var(--panel3);transform:none;box-shadow:none}
 .seg .btn.on{background:var(--accent);color:#20130a}
 
-input[type=number],input[type=text],select,textarea{
+input[type=number],input[type=text],select{
   background:var(--panel2);border:1px solid var(--line);color:var(--text);
   border-radius:7px;padding:6px 8px;font-size:12px;font-family:inherit;outline:none;transition:.16s;
   min-width:0;
@@ -180,13 +178,7 @@ input[type=number],input[type=text],select,textarea{
 input[type=number]{width:62px;text-align:center}
 input[type=text]{width:100%}
 select{width:100%;cursor:pointer}
-textarea{
-  width:100%;resize:vertical;line-height:1.65;font-size:11.5px;
-  padding:8px 9px;border-radius:8px;display:block;
-}
-textarea[readonly]{color:var(--muted);cursor:text}
-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-input:hover,select:hover,textarea:hover{border-color:var(--line2)}
+input:hover,select:hover{border-color:var(--line2)}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 option{background:var(--panel2)}
 
@@ -474,26 +466,8 @@ body,.topbar,.panel,.stage,.holder,.btn,input,select{
         <div class="sw" data-sw="showimg"><span>显示底图</span><i class="tg on"></i></div>
         <div class="sw" data-sw="dither"><span>转换时误差扩散</span><i class="tg"></i></div>
         <button class="btn sm block dgr" id="btnDelImg" style="margin-bottom:8px">移除底图</button>
-        <div class="sub-t" style="margin:10px 0 5px">照片 → Q 版像素角色（转换前处理）</div>
-        <div class="sw" data-sw="denoise"><span>减少杂点 / 孤立像素</span><i class="tg on"></i></div>
-        <div class="sw" data-sw="merge"><span>相近颜色合并</span><i class="tg on"></i></div>
-        <div class="sw" data-sw="frame"><span>人物居中 + 四周留白</span><i class="tg on"></i></div>
-        <button class="btn pri block" id="btnConvert" style="margin-top:9px">✨ 一键转为拼豆图纸</button>
-        <div class="hint">按当前画布尺寸采样，使用 RGB 欧式距离匹配最接近的拼豆色号，再按上面三项做像素图优化。</div>
-      </div>
-
-      <div class="sec">
-        <div class="sec-t">✨ AI 生图提示词</div>
-        <div class="hint">
-          想把照片变成「星露谷风 Q 版像素角色」？<br>
-          ① 填主体描述 → ② 复制提示词 → ③ 粘到任意 AI 生图工具出图 → ④ 用上面「上传本地图片」导入 → ⑤ 点「一键转为拼豆图纸」。
-        </div>
-        <textarea id="aiSubject" rows="2" placeholder="照片主体描述，例：穿红色连衣裙的黑色长发女孩，抱着一只橘猫，微笑" style="margin-bottom:6px"></textarea>
-        <textarea id="aiPrompt" rows="9" readonly></textarea>
-        <div class="grid2" style="margin-top:7px">
-          <button class="btn sm" id="btnCopyPrompt">📋 复制提示词</button>
-          <button class="btn sm" id="btnResetPrompt">恢复默认</button>
-        </div>
+        <button class="btn pri block" id="btnConvert">✨ 一键转为拼豆图纸</button>
+        <div class="hint">按当前画布尺寸采样，使用 RGB 欧式距离匹配最接近的拼豆色号。</div>
       </div>
 
       <div class="sec">
@@ -508,9 +482,7 @@ body,.topbar,.panel,.stage,.holder,.btn,input,select{
           </select>
         </div>
         <div class="hint" id="hintExport" style="margin:-4px 0 8px">当前：—</div>
-        <div class="sw" data-sw="exportcode"><span>导出时标注色号</span><i class="tg"></i></div>
-        <div class="hint">默认关闭＝纯净图纸（只有像素图 + 浅灰网格，无坐标/色号/统计）。需要照图配豆时再打开。</div>
-        <div class="grid2" style="margin-top:9px">
+        <div class="grid2">
           <button class="btn sm" id="btnExportPng2">图纸 PNG</button>
           <button class="btn sm" id="btnExportCsv">用料 CSV</button>
           <button class="btn sm" id="btnSave">保存项目</button>
@@ -703,8 +675,6 @@ const S = {
   mode:"block",              // block | bead
   showGrid:true, showRuler:true, showCode:true,
   showImg:true, dither:false,
-  denoise:true, merge:true, frame:true,   // 照片转图纸的三项像素优化
-  exportCode:false,                        // 导出图纸是否标注色号（默认纯净图纸）
   fit:"contain", alpha:0.55,
   zoom:1,
   img:null
@@ -728,7 +698,6 @@ function boot(){
   selectColor(0);
   updateStatus();
   updateExportHint();
-  refreshAIPrompt();
 }
 
 /* =========================================================================
@@ -998,14 +967,13 @@ function drawPattern(){
 /* 网格线粗细随格子尺寸走：屏幕 16px 格仍是 1px 细线，
    4K 导出（格子 64px 以上）自动加粗，否则线会被"稀释"到几乎看不见。 */
 function drawGridLines(c,W,H,cell,print){
-  const thin = Math.max(1, cell/26);
-  const bold = Math.max(1, cell/16);
+  const thin = Math.max(1, cell/24);
+  const bold = Math.max(1, cell/12);
   const snap = function(v,w){ return w%2===0 ? Math.round(v) : Math.round(v)+0.5; };
-  // 导出用浅灰（不遮挡人物颜色的前提下，每 10 格的主线略深一点点方便数格）
   for(let x=0;x<=W;x++){
     const major = x%10===0, lw = major?bold:thin;
     c.lineWidth = lw;
-    c.strokeStyle = print ? (major?"rgba(0,0,0,.26)":"rgba(0,0,0,.13)")
+    c.strokeStyle = print ? (major?"rgba(0,0,0,.46)":"rgba(0,0,0,.17)")
                           : (major?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
     const px = snap(x*cell, lw);
     c.beginPath(); c.moveTo(px,0); c.lineTo(px,H*cell); c.stroke();
@@ -1013,7 +981,7 @@ function drawGridLines(c,W,H,cell,print){
   for(let y=0;y<=H;y++){
     const major = y%10===0, lw = major?bold:thin;
     c.lineWidth = lw;
-    c.strokeStyle = print ? (major?"rgba(0,0,0,.26)":"rgba(0,0,0,.13)")
+    c.strokeStyle = print ? (major?"rgba(0,0,0,.46)":"rgba(0,0,0,.17)")
                           : (major?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
     const py = snap(y*cell, lw);
     c.beginPath(); c.moveTo(0,py); c.lineTo(W*cell,py); c.stroke();
@@ -1053,102 +1021,6 @@ function nearestIdx(r,g,b){
     if(d<bd){ bd=d; best=i; }
   }
   return best;
-}
-
-/* =========================================================================
-   照片 → 拼豆图纸 的像素后处理
-   目标：减少孤立像素/零散杂点、相近颜色合并、人物完整居中且四周留白，
-   让成图轮廓连贯、适合手工拼豆。三项都在「参考底图」区可单独开关。
-   ========================================================================= */
-
-/* 1) 去孤岛：面积小于 minArea 的同色连通块，并入周边出现最多的颜色；
-      周边全空的漂浮块直接删除（-1）。4 邻域。 */
-function denoiseIslands(g,W,H,minArea){
-  const seen=new Uint8Array(W*H), out=g.slice(), stack=[];
-  const nbr=function(j,x,y){
-    const a=[];
-    if(x>0)   a.push(j-1);
-    if(x<W-1) a.push(j+1);
-    if(y>0)   a.push(j-W);
-    if(y<H-1) a.push(j+W);
-    return a;
-  };
-  for(let i=0;i<W*H;i++){
-    if(seen[i]) continue;
-    if(g[i]<0){ seen[i]=1; continue; }
-    const col=g[i], comp=[];
-    stack.length=0; stack.push(i); seen[i]=1;
-    while(stack.length){
-      const j=stack.pop(); comp.push(j);
-      const x=j%W, y=(j-x)/W;
-      const nb=nbr(j,x,y);
-      for(let k=0;k<nb.length;k++){
-        const t=nb[k];
-        if(!seen[t] && g[t]===col){ seen[t]=1; stack.push(t); }
-      }
-    }
-    if(comp.length>=minArea) continue;
-    // 统计块外围颜色，取众数
-    const cnt=new Map();
-    for(let a=0;a<comp.length;a++){
-      const j=comp[a], x=j%W, y=(j-x)/W, nb=nbr(j,x,y);
-      for(let k=0;k<nb.length;k++){
-        const c=g[nb[k]];
-        if(c===col || c<0) continue;
-        cnt.set(c,(cnt.get(c)||0)+1);
-      }
-    }
-    let best=-1, bn=0;
-    cnt.forEach(function(n,c){ if(n>bn){ bn=n; best=c; } });
-    for(let a=0;a<comp.length;a++) out[comp[a]]=best;   // 无邻居 → -1（删除漂浮点）
-  }
-  return out;
-}
-
-/* 2) 相近色合并：出现次数少于 minCount 的稀有色，整体并入调色板里
-      「距离最近且常用的那个色」，减少配豆种类、也让色块更连贯。 */
-function mergeRareColors(g,W,H,minCount){
-  const cnt=new Map();
-  for(let i=0;i<W*H;i++){ const v=g[i]; if(v>=0) cnt.set(v,(cnt.get(v)||0)+1); }
-  const common=[], rare=new Set();
-  cnt.forEach(function(n,v){ if(n<minCount) rare.add(v); else common.push(v); });
-  if(!rare.size || !common.length) return g;
-  const map=new Map();
-  rare.forEach(function(rv){
-    const a=PALETTE[rv].rgb;
-    let best=common[0], bd=Infinity;
-    for(let k=0;k<common.length;k++){
-      const b=PALETTE[common[k]].rgb;
-      const dr=a[0]-b[0], dg=a[1]-b[1], db=a[2]-b[2];
-      const d=dr*dr+dg*dg+db*db;
-      if(d<bd){ bd=d; best=common[k]; }
-    }
-    map.set(rv,best);
-  });
-  const out=g.slice();
-  for(let i=0;i<W*H;i++){ const v=out[i]; if(v>=0 && map.has(v)) out[i]=map.get(v); }
-  return out;
-}
-
-/* 3) 自动构图：算出内容包围盒，整体平移到画布正中，四周至少 pad 格空白。
-      内容放不下（比可用区还大）就不动，避免裁切掉头发/手脚/配饰。 */
-function autoFrame(g,W,H,pad){
-  let x0=W,y0=H,x1=-1,y1=-1;
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    if(g[y*W+x]>=0){
-      if(x<x0)x0=x; if(x>x1)x1=x;
-      if(y<y0)y0=y; if(y>y1)y1=y;
-    }
-  }
-  if(x1<0) return null;                       // 空画布
-  const cw=x1-x0+1, ch=y1-y0+1;
-  if(cw>W-pad*2 || ch>H-pad*2) return null;   // 放不下，保持原样（绝不裁切）
-  const nx=Math.floor((W-cw)/2), ny=Math.floor((H-ch)/2);
-  if(nx===x0 && ny===y0) return null;         // 已经居中
-  const out=new Int16Array(W*H).fill(-1);
-  for(let y=0;y<ch;y++) for(let x=0;x<cw;x++)
-    out[(ny+y)*W+(nx+x)] = g[(y0+y)*W+(x0+x)];
-  return out;
 }
 
 function convertImage(){
@@ -1195,24 +1067,10 @@ function convertImage(){
     }
   }
 
-  // —— 像素图优化（对应「星露谷风 Q 版拼豆图纸」规范）——
-  const steps=[];
-  let g=out;
-  // 误差扩散本身就会产生大量杂点，开着 dither 时把去杂点阈值放宽一点
-  const minArea = S.dither ? 3 : 2;
-  if(S.denoise){ g=denoiseIslands(g,W,H,minArea); steps.push("去杂点"); }
-  if(S.merge){   g=mergeRareColors(g,W,H,2);      steps.push("合并相近色"); }
-  let framed=false;
-  if(S.frame){
-    const f=autoFrame(g,W,H,2);
-    if(f){ g=f; framed=true; }
-    steps.push(framed?"已居中":"已居中(无需移动)");
-  }
-
-  S.grid=g;
+  S.grid=out;
   pushHistory();
   drawPattern(); updateStats(); updateStatus();
-  toast(steps.length ? ("已转换 · "+steps.join(" / ")) : "已转换为拼豆图纸");
+  toast("已转换为拼豆图纸");
 }
 
 /* =========================================================================
@@ -1536,13 +1394,6 @@ document.querySelectorAll(".sw[data-sw]").forEach(function(sw){
     else if(key==="code"){ S.showCode=on; spriteKey=""; drawPattern(); }
     else if(key==="showimg"){ S.showImg=on; drawBase(); }
     else if(key==="dither"){ S.dither=on; }
-    else if(key==="denoise"){ S.denoise=on; }
-    else if(key==="merge"){ S.merge=on; }
-    else if(key==="frame"){ S.frame=on; }
-    else if(key==="exportcode"){
-      S.exportCode=on;
-      toast(on ? "导出图纸将标注色号" : "导出图纸为纯净版（无色号/坐标/统计）");
-    }
   });
 });
 
@@ -1559,49 +1410,6 @@ $("btnClear").addEventListener("click",clearCanvas);
 $("rgZoom").addEventListener("input",function(){ S.zoom=clampZ(this.value/100); applyZoom(); });
 $("btnFit").addEventListener("click",fitToView);
 $("selExportScale").addEventListener("change", updateExportHint);
-
-/* =========================================================================
-   AI 生图提示词：把「照片 → 星露谷风 Q 版像素角色」的整套规范固化在这里，
-   用户填一句主体描述就能拿到可直接粘去生图工具的完整提示词。
-   ========================================================================= */
-const AI_BODY =
-"自动识别照片中的主要人物，去除复杂背景，提炼人物最有辨识度的发型、脸型、五官、服装、姿态、配饰和主要颜色，"+
-"将其设计成星露谷物语氛围的可爱Q版像素角色：头身比例约为1:2至1:3，头部稍大、身体短小，五官简洁灵动，"+
-"轮廓圆润可爱，造型具有复古农场生活RPG像素游戏质感。保留人物原本特征和穿搭辨识度，"+
-"但不要直接复制游戏中的现有角色、服装或素材。\n"+
-"所有网格必须是大小完全一致的等比例正方形，横向和纵向间距统一，不得出现长方形、倾斜、变形或大小不同的格子。"+
-"人物完整居中，四周保留适量空白，不裁切头发、手脚、服装和关键配饰。\n"+
-"每个网格只能填充一种纯色，色块完整覆盖方格。整体色号在已有的221色号中挑选，相近颜色适当合并，"+
-"采用复古、柔和、明快的像素游戏配色。深色用于外轮廓、头发和阴影，中间色表现服装与皮肤，浅色用于高光和细节。"+
-"减少孤立像素、零散杂点、过细线条和复杂纹理，使轮廓清晰连贯，适合手工拼豆制作。\n"+
-"成品为纯白背景、正面平面视图、高清像素图纸。画面只保留像素图和均匀正方形网格，"+
-"不需要坐标、色号、色卡、数量统计、标题或装饰文字。网格线使用细而清晰的浅灰色，线条均匀，不遮挡人物颜色。";
-
-const AI_NEG =
-"不要写实人物，不要高挑正常人体比例，不要复杂五官，不要直接复制游戏角色；"+
-"不要坐标、色号、文字和统计；不要圆形或长方形网格；"+
-"不要渐变、透明、柔光、模糊、抗锯齿、3D效果、复杂背景、细碎噪点、水印或多余装饰。";
-
-function buildAIPrompt(){
-  const subj = ($("aiSubject").value||"").trim();
-  let s = "将我上传的照片转换为一张可直接参考制作的拼豆像素图纸。\n";
-  s += "示例图仅用于参考网格版式，不要复制其中的人物、图案、文字或配色，实际内容必须以我上传的照片主体为准。\n";
-  if(subj) s += "\n照片主体：" + subj + "。\n";
-  s += "\n" + AI_BODY + "\n\n**负面要求：**" + AI_NEG;
-  return s;
-}
-function refreshAIPrompt(){ $("aiPrompt").value = buildAIPrompt(); }
-$("aiSubject").addEventListener("input", refreshAIPrompt);
-$("btnResetPrompt").addEventListener("click",function(){
-  $("aiSubject").value=""; refreshAIPrompt(); toast("已恢复默认提示词");
-});
-$("btnCopyPrompt").addEventListener("click",function(){
-  const txt=buildAIPrompt();
-  const done=function(){ toast("提示词已复制，去 AI 生图工具粘贴吧"); };
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(done,function(){ fallbackCopy(txt,done); });
-  } else fallbackCopy(txt,done);
-});
 $("rgAlpha").addEventListener("input",function(){
   S.alpha=this.value/100; $("lbAlpha").textContent=this.value+"%"; drawBase();
 });
@@ -1670,8 +1478,8 @@ function exportPNG(){
   c.fillStyle="#ffffff"; c.fillRect(0,0,cv.width,cv.height);
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){
     const v=S.grid[y*W+x]; if(v<0) continue;
-    // 是否标注色号由「导出时标注色号」开关决定（默认关＝纯净图纸）
-    drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, S.exportCode, true);
+    // 图纸导出时强制画色号 —— 用户要的是“图纸生成时标注色号”，与屏幕开关无关
+    drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, true, true);
   }
   if(S.showGrid) drawGridLines(c,W,H,cell,true);
   const fname="perler-"+W+"x"+H+"-"+cv.width+"px.png";
