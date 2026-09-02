@@ -193,8 +193,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .cur .cname{font-size:13px;font-weight:700}
 .cur .ccode{font-size:11px;color:var(--accent2);font-family:Consolas,monospace;letter-spacing:.5px}
 .cur .chex{font-size:10.5px;color:var(--muted);font-family:Consolas,monospace}
-.grp{font-size:10.5px;color:var(--muted);margin:10px 0 6px;letter-spacing:1px}
+.grp{
+  display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);
+  margin:12px 0 6px;letter-spacing:.5px;user-select:none;
+}
+.grp .gdot{width:8px;height:8px;border-radius:2px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.grp .gname{font-weight:600}
+.grp .gnum{color:var(--muted);font-size:10px;font-family:Consolas,monospace}
+.grp .gline{flex:1;height:1px;background:var(--line)}
+.grp .gtog{
+  font-size:10px;color:var(--accent);background:transparent;border:1px solid var(--line);
+  border-radius:20px;padding:2px 8px;cursor:pointer;white-space:nowrap;transition:.15s;
+}
+.grp .gtog:hover{background:var(--accent);border-color:var(--accent);color:#15171a}
+.grp .gtog[hidden]{display:none}
 .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:5px}
+.pchip.folded{opacity:.55}
 .pchip{
   aspect-ratio:1;border-radius:6px;cursor:pointer;position:relative;transition:.15s;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
@@ -392,7 +406,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       </div>
 
       <div class="sec">
-        <div class="sec-t">拼豆色板 <span class="tail" id="palCount">57 色</span></div>
+        <div class="sec-t">拼豆色板 <span class="tail" id="palCount">221 色</span></div>
         <div id="palBox"></div>
       </div>
 
@@ -420,34 +434,104 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
    拼豆图纸生成器 —— 单文件 / 原生 JS / 无外部依赖
    ========================================================================= */
 
-/* ---------------- 固定拼豆色板（色号 / 名称 / HEX / 分组） ---------------- */
-const PALETTE = [
-  ["A01","白色","#FFFFFF","黑白灰"],["A02","珍珠白","#F7F3EA","黑白灰"],["A03","米白","#EBE0CD","黑白灰"],
-  ["A04","浅灰","#D9DADC","黑白灰"],["A05","银灰","#B7BCC2","黑白灰"],["A06","中灰","#8E949B","黑白灰"],
-  ["A07","深灰","#5E646B","黑白灰"],["A08","铁灰","#3C4148","黑白灰"],["A09","黑色","#17181A","黑白灰"],
-  ["B01","大红","#E02020","红色系"],["B02","朱红","#F04A2A","红色系"],["B03","玫红","#E6005C","红色系"],
-  ["B04","酒红","#8C1C2B","红色系"],["B05","砖红","#B5492F","红色系"],["B06","珊瑚红","#FF6B6B","红色系"],
-  ["C01","亮橙","#FF8A2B","橙色系"],["C02","橙色","#F26A1B","橙色系"],["C03","深橙","#D2560F","橙色系"],
-  ["C04","蜜柑","#FFA94D","橙色系"],["C05","杏色","#FFCBA4","橙色系"],
-  ["D01","明黄","#FFD400","黄色系"],["D02","柠檬黄","#FFF176","黄色系"],["D03","金黄","#F2A600","黄色系"],
-  ["D04","芥末黄","#C79A2E","黄色系"],["D05","沙色","#E0C9A0","黄色系"],
-  ["E01","亮绿","#7ED957","绿色系"],["E02","草绿","#46A546","绿色系"],["E03","深绿","#1F7A3D","绿色系"],
-  ["E04","墨绿","#14532D","绿色系"],["E05","薄荷绿","#A8E6CF","绿色系"],["E06","橄榄绿","#7A8B3C","绿色系"],
-  ["E07","青绿","#2BB8A3","绿色系"],
-  ["F01","浅蓝","#BFE3F7","蓝色系"],["F02","天蓝","#5CC8F5","蓝色系"],["F03","湖蓝","#1E9BE0","蓝色系"],
-  ["F04","宝蓝","#1B62B0","蓝色系"],["F05","深蓝","#0F3D75","蓝色系"],["F06","藏青","#1B2A4A","蓝色系"],
-  ["G01","淡紫","#D7C4EC","紫色系"],["G02","薰衣草","#B39DDB","紫色系"],["G03","紫色","#8E44AD","紫色系"],
-  ["G04","深紫","#5B2C82","紫色系"],
-  ["H01","浅粉","#FFD9E3","粉色系"],["H02","樱粉","#FF9EC0","粉色系"],["H03","桃粉","#FF6F91","粉色系"],
-  ["H04","玫紫","#D14E8C","粉色系"],
-  ["I01","肤色","#F7D9BE","棕色系"],["I02","浅棕","#CDA37A","棕色系"],["I03","棕色","#8B5E3C","棕色系"],
-  ["I04","咖啡","#5C3A21","棕色系"],["I05","巧克力","#3E2723","棕色系"],
-  ["J01","荧光黄","#EAFF3C","特殊色"],["J02","荧光绿","#39FF6A","特殊色"],["J03","荧光粉","#FF4FA3","特殊色"],
-  ["J04","银色","#C0C6CC","特殊色"],["J05","金色","#D4AF37","特殊色"],["J06","透明","#DCE7EC","特殊色"]
-].map(function(p,i){return {i:i,c:p[0],n:p[1],h:p[2],g:p[3],rgb:hex2rgb(p[2])};});
+/* ---------------- 固定拼豆色板（221 色 / 9 类 / 每类前 8 个默认展开） ----------------
+   分类: A 黄橙(26) B 绿(32) C 蓝青(29) D 紫(26) E 粉(24) F 红(25) G 棕(21) H 灰白(23) M 混合(15)
+   每类第 9 个起默认折叠，点击 "展开/收起" 切换。
+*/
+const PALETTE_RAW = [
+  // A 黄橙系 x26
+  ["A01","#F9F4C6","A黄橙"],["A02","#FDFED6","A黄橙"],["A03","#FCFC8A","A黄橙"],["A04","#FAEA55","A黄橙"],
+  ["A05","#F0D73A","A黄橙"],["A06","#FDAE4D","A黄橙"],["A07","#FA8A4A","A黄橙"],["A08","#FDDA44","A黄橙"],
+  ["A09","#FB9A59","A黄橙"],["A10","#F57B31","A黄橙"],["A11","#FCDBA0","A黄橙"],["A12","#F99E72","A黄橙"],
+  ["A13","#FCC064","A黄橙"],["A14","#F8553E","A黄橙"],["A15","#FCEF66","A黄橙"],["A16","#FCFBA9","A黄橙"],
+  ["A17","#FCE26D","A黄橙"],["A18","#FABF7D","A黄橙"],["A19","#F97C74","A黄橙"],["A20","#F9D568","A黄橙"],
+  ["A21","#F8E393","A黄橙"],["A22","#F3F582","A黄橙"],["A23","#E4CBB6","A黄橙"],["A24","#F5F9A3","A黄橙"],
+  ["A25","#FCD583","A黄橙"],["A26","#FBC839","A黄橙"],
+  // B 绿色系 x32
+  ["B01","#E6EC34","B绿色"],["B02","#62F048","B绿色"],["B03","#9CF67C","B绿色"],["B04","#5DE236","B绿色"],
+  ["B05","#36E154","B绿色"],["B06","#66E4A8","B绿色"],["B07","#3FAE81","B绿色"],["B08","#1F9E54","B绿色"],
+  ["B09","#26593E","B绿色"],["B10","#7BB4A3","B绿色"],["B11","#6A8B53","B绿色"],["B12","#286D3C","B绿色"],
+  ["B13","#97C76C","B绿色"],["B14","#B9E95D","B绿色"],["B15","#659138","B绿色"],["B16","#ADD28A","B绿色"],
+  ["B17","#A9C358","B绿色"],["B18","#C5D441","B绿色"],["B19","#60CA77","B绿色"],["B20","#7CD6AE","B绿色"],
+  ["B21","#58988F","B绿色"],["B22","#114E51","B绿色"],["B23","#193C30","B绿色"],["B24","#D7E595","B绿色"],
+  ["B25","#88AC7E","B绿色"],["B26","#6F7C4E","B绿色"],["B27","#AEB074","B绿色"],["B28","#B4E3B6","B绿色"],
+  ["B29","#B3E388","B绿色"],["B30","#D5F08B","B绿色"],["B31","#C9F0A4","B绿色"],["B32","#A4C677","B绿色"],
+  // C 蓝青系 x29
+  ["C01","#E8FDEB","C蓝青"],["C02","#A9F7FB","C蓝青"],["C03","#A0E1FA","C蓝青"],["C04","#4EC2EF","C蓝青"],
+  ["C05","#06ACEA","C蓝青"],["C06","#50AAEE","C蓝青"],["C07","#3578CE","C蓝青"],["C08","#1351C2","C蓝青"],
+  ["C09","#304DCA","C蓝青"],["C10","#45BAE1","C蓝青"],["C11","#27D7D4","C蓝青"],["C12","#1A334D","C蓝青"],
+  ["C13","#CFE5FC","C蓝青"],["C14","#D5FCFB","C蓝青"],["C15","#25C7C7","C蓝青"],["C16","#1553A1","C蓝青"],
+  ["C17","#03D4F4","C蓝青"],["C18","#1A303E","C蓝青"],["C19","#1B84A0","C蓝青"],["C20","#1A70B6","C蓝青"],
+  ["C21","#BDE1F9","C蓝青"],["C22","#6AB2BA","C蓝青"],["C23","#C8E2F9","C蓝青"],["C24","#7DC4F5","C蓝青"],
+  ["C25","#A8E5E0","C蓝青"],["C26","#3AACD7","C蓝青"],["C27","#D0DEF8","C蓝青"],["C28","#BACFED","C蓝青"],
+  ["C29","#33478A","C蓝青"],
+  // D 紫色系 x26
+  ["D01","#AFB4F2","D紫色"],["D02","#828EDA","D紫色"],["D03","#2B53AF","D紫色"],["D04","#192688","D紫色"],
+  ["D05","#B743C6","D紫色"],["D06","#A87ADD","D紫色"],["D07","#8355B1","D紫色"],["D08","#E2D2FA","D紫色"],
+  ["D09","#D6BCF4","D紫色"],["D10","#361B47","D紫色"],["D11","#B3B8DE","D紫色"],["D12","#E099D6","D紫色"],
+  ["D13","#B80193","D紫色"],["D14","#812999","D紫色"],["D15","#321F93","D紫色"],["D16","#E2E0E9","D紫色"],
+  ["D17","#C5D4EF","D紫色"],["D18","#A35EC6","D紫色"],["D19","#D6C5D0","D紫色"],["D20","#9C38A9","D紫色"],
+  ["D21","#A001A2","D紫色"],["D22","#32369C","D紫色"],["D23","#E7DEF9","D紫色"],["D24","#7687E4","D紫色"],
+  ["D25","#464FD2","D紫色"],["D26","#DEC1FB","D紫色"],
+  // E 粉色系 x24
+  ["E01","#FDD3CB","E粉色"],["E02","#F9C2DD","E粉色"],["E03","#FDB7E6","E粉色"],["E04","#E1639B","E粉色"],
+  ["E05","#EE54A2","E粉色"],["E06","#EF3D73","E粉色"],["E07","#AF3E6F","E粉色"],["E08","#FCDDE8","E粉色"],
+  ["E09","#E672C9","E粉色"],["E10","#D1378C","E粉色"],["E11","#F7DCD4","E粉色"],["E12","#F391C2","E粉色"],
+  ["E13","#B2046B","E粉色"],["E14","#FDD0B6","E粉色"],["E15","#F4C8CC","E粉色"],["E16","#FBF2EA","E粉色"],
+  ["E17","#FCE2E8","E粉色"],["E18","#FAC7DD","E粉色"],["E19","#F7BCD2","E粉色"],["E20","#DAC6D0","E粉色"],
+  ["E21","#BA9DA1","E粉色"],["E22","#B286A1","E粉色"],["E23","#927B88","E粉色"],["E24","#E1BEE4","E粉色"],
+  // F 红色系 x25
+  ["F01","#FB9479","F红色"],["F02","#FC3743","F红色"],["F03","#F54942","F红色"],["F04","#F7283C","F红色"],
+  ["F05","#E70133","F红色"],["F06","#923732","F红色"],["F07","#951837","F红色"],["F08","#BF012A","F红色"],
+  ["F09","#E06879","F红色"],["F10","#88441D","F红色"],["F11","#57231D","F红色"],["F12","#FA4E66","F红色"],
+  ["F13","#E65D4A","F红色"],["F14","#FAA8B1","F红色"],["F15","#CD0122","F红色"],["F16","#FAC2A4","F红色"],
+  ["F17","#E69B78","F红色"],["F18","#D57B4A","F红色"],["F19","#C1414A","F红色"],["F20","#C8948F","F红色"],
+  ["F21","#F3B7C8","F红色"],["F22","#FBBBCE","F红色"],["F23","#F67C68","F红色"],["F24","#E39DAD","F红色"],
+  ["F25","#E24A4F","F红色"],
+  // G 棕色系 x21
+  ["G01","#FAE1CF","G棕色"],["G02","#F9C5AC","G棕色"],["G03","#F2C1A2","G棕色"],["G04","#E1B284","G棕色"],
+  ["G05","#E9B14A","G棕色"],["G06","#E69C1E","G棕色"],["G07","#9F5F44","G棕色"],["G08","#733935","G棕色"],
+  ["G09","#E6B47E","G棕色"],["G10","#D7893E","G棕色"],["G11","#DDC590","G棕色"],["G12","#F5C590","G棕色"],
+  ["G13","#B17149","G棕色"],["G14","#916551","G棕色"],["G15","#FCF9E2","G棕色"],["G16","#EEDCB8","G棕色"],
+  ["G17","#78514B","G棕色"],["G18","#FCE4CB","G棕色"],["G19","#E57832","G棕色"],["G20","#A34120","G棕色"],
+  ["G21","#B6895D","G棕色"],
+  // H 灰白系 x23
+  ["H01","#B8B3B9","H灰白"],["H02","#8A878F","H灰白"],["H03","#56545D","H灰白"],["H04","#57555D","H灰白"],
+  ["H05","#A19E9F","H灰白"],["H06","#DCCDD4","H灰白"],["H07","#EAE2E5","H灰白"],["H08","#ECEBEB","H灰白"],
+  ["H09","#E4E3E6","H灰白"],["H10","#CFD0D9","H灰白"],["H11","#FCF6EC","H灰白"],["H12","#F4ECD1","H灰白"],
+  ["H13","#CED6CF","H灰白"],["H14","#97A5A6","H灰白"],["H15","#9FA7A7","H灰白"],["H16","#EAE9E7","H灰白"],
+  ["H17","#F6F4EE","H灰白"],["H18","#F8F5E9","H灰白"],["H19","#C9CAC5","H灰白"],["H20","#BFC4B9","H灰白"],
+  ["H21","#F4F2DD","H灰白"],["H22","#CBCCD2","H灰白"],["H23","#9A9D94","H灰白"],
+  // M 混合系 x15
+  ["M01","#BBC6B6","M混合"],["M02","#89A386","M混合"],["M03","#6A7E7C","M混合"],["M04","#E3D2BA","M混合"],
+  ["M05","#CFCBAC","M混合"],["M06","#AFA883","M混合"],["M07","#B4A598","M混合"],["M08","#B27E82","M混合"],
+  ["M09","#A38669","M混合"],["M10","#C3B3BA","M混合"],["M11","#9B7690","M混合"],["M12","#664A49","M混合"],
+  ["M13","#CE9066","M混合"],["M14","#BF705A","M混合"],["M15","#767B79","M混合"]
+];
+// g 形如 "A黄橙" → gn 形如 "A · 黄橙系"
+function groupLabel(g){ return g[0]+" · "+g.slice(1)+"系"; }
+const PALETTE = PALETTE_RAW.map(function(p,i){
+  return {i:i, c:p[0], n:p[0], h:p[1], g:p[2], gn:groupLabel(p[2]), rgb:hex2rgb(p[1])};
+});
 
 function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
-const GROUPS = ["黑白灰","红色系","橙色系","黄色系","绿色系","蓝色系","紫色系","粉色系","棕色系","特殊色"];
+
+// 分组元数据（按原色卡的列序）
+const GROUP_META = [
+  {key:"A黄橙", label:"A · 黄橙系", short:"A", total:26},
+  {key:"B绿色", label:"B · 绿色系", short:"B", total:32},
+  {key:"C蓝青", label:"C · 蓝青系", short:"C", total:29},
+  {key:"D紫色", label:"D · 紫色系", short:"D", total:26},
+  {key:"E粉色", label:"E · 粉色系", short:"E", total:24},
+  {key:"F红色", label:"F · 红色系", short:"F", total:25},
+  {key:"G棕色", label:"G · 棕色系", short:"G", total:21},
+  {key:"H灰白", label:"H · 灰白系", short:"H", total:23},
+  {key:"M混合", label:"M · 混合系", short:"M", total:15}
+];
+// 兼容旧代码：保留同名数组 GROUPS（仅 key 列表）
+const GROUPS = GROUP_META.map(function(g){return g.key;});
+// 每类默认展开前 N 个
+const VISIBLE_PER_GROUP = 8;
 
 /* ---------------- 常量与状态 ---------------- */
 const CELL = 16;            // 单元格固定 16px
@@ -866,7 +950,7 @@ patCv.addEventListener("pointerdown",function(e){
   const tool = tempEraser ? "eraser" : S.tool;
   if(tool==="picker"){
     const v=S.grid[c.y*S.w+c.x];
-    if(v>=0){ selectColor(v); toast("已拾取 "+PALETTE[v].c+" "+PALETTE[v].n); setTool("brush"); }
+    if(v>=0){ selectColor(v); toast("已拾取 "+PALETTE[v].c+" "+PALETTE[v].gn); setTool("brush"); }
     else toast("该格为空");
     return;
   }
@@ -899,41 +983,99 @@ function updatePos(c){ $("stPos").textContent = c ? ((c.x+1)+" , "+(c.y+1)) : "�
 /* =========================================================================
    右侧：色板 + 用料统计
    ========================================================================= */
+// 展开状态：每类记录是否展开（false = 只显示前 VISIBLE_PER_GROUP 个）
+const OPEN = Object.create(null);
+GROUP_META.forEach(function(m){ OPEN[m.key] = false; });
+
 function buildPalette(){
   const box=$("palBox"); box.innerHTML="";
-  GROUPS.forEach(function(g){
-    const t=document.createElement("div"); t.className="grp"; t.dataset.grp=g; t.textContent=g; box.appendChild(t);
-    const grid=document.createElement("div"); grid.className="pal"; grid.dataset.grpGrid=g; box.appendChild(grid);
-    PALETTE.filter(function(p){return p.g===g;}).forEach(function(p){
+  GROUP_META.forEach(function(m){
+    const list = PALETTE.filter(function(p){return p.g===m.key;});
+
+    // 标题行
+    const t=document.createElement("div");
+    t.className="grp"; t.dataset.grp=m.key;
+    t.innerHTML='<span class="gdot" style="background:'+list[0].h+'"></span>'
+              + '<span class="gname">'+m.label+'</span>'
+              + '<span class="gnum">'+list.length+'色</span>'
+              + '<span class="gline"></span>'
+              + '<button class="gtog" type="button"></button>';
+    box.appendChild(t);
+
+    // 色块网格
+    const grid=document.createElement("div");
+    grid.className="pal"; grid.dataset.grpGrid=m.key;
+    box.appendChild(grid);
+
+    list.forEach(function(p,k){
       const el=document.createElement("div");
       el.className="pchip"; el.style.background=p.h;
-      el.title=p.c+" "+p.n+" "+p.h; el.dataset.idx=p.i; el.dataset.key=(p.c+" "+p.n).toLowerCase();
+      el.title=p.c+"  "+p.h; el.dataset.idx=p.i;
+      el.dataset.key=(p.c+" "+m.label).toLowerCase();
+      el.dataset.seq=k;                                  // 本类内序号
+      el.dataset.grp=m.key;
       el.addEventListener("click",function(){ selectColor(p.i); });
       grid.appendChild(el);
     });
+
+    t.querySelector(".gtog").addEventListener("click",function(){
+      OPEN[m.key] = !OPEN[m.key];
+      applyFold();
+    });
   });
-  $("palCount").textContent = PALETTE.length+" 色";
+  applyFold();
+  $("palCount").textContent = PALETTE.length+" 色 / "+GROUP_META.length+" 类";
 }
+
+// 按展开状态显示/隐藏第 9 个及以后的色块
+function applyFold(){
+  document.querySelectorAll(".pchip[data-grp]").forEach(function(el){
+    const open = OPEN[el.dataset.grp];
+    const hidden = !open && (+el.dataset.seq) >= VISIBLE_PER_GROUP;
+    el.classList.toggle("folded", hidden);
+    el.style.display = hidden ? "none" : "";
+  });
+  GROUP_META.forEach(function(m){
+    const total = PALETTE.filter(function(p){return p.g===m.key;}).length;
+    const rest  = Math.max(0, total - VISIBLE_PER_GROUP);
+    const btn   = document.querySelector('.grp[data-grp="'+m.key+'"] .gtog');
+    if(!btn) return;
+    if(rest <= 0){ btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.textContent = OPEN[m.key] ? "收起 ▲" : ("展开 +"+rest+" ▼");
+  });
+  // 搜索过滤仍然生效时重新套用
+  const sv = $("palSearch").value.trim().toLowerCase();
+  if(sv) applySearch(sv);
+}
+
 function selectColor(i){
   S.color=i; const p=PALETTE[i];
   $("curChip").style.background=p.h;
-  $("curName").textContent=p.n;
+  $("curName").textContent=p.gn;
   $("curCode").textContent=p.c;
   $("curHex").textContent=p.h.toUpperCase();
   document.querySelectorAll(".pchip").forEach(function(el){
     el.classList.toggle("on", +el.dataset.idx===i);
   });
 }
-$("palSearch").addEventListener("input",function(){
-  const k=this.value.trim().toLowerCase();
-  document.querySelectorAll(".pchip").forEach(function(el){
-    el.classList.toggle("hide", !!k && el.dataset.key.indexOf(k)<0);
+
+// 搜索时自动展开命中色所在的分组，结束后恢复原状态
+function applySearch(k){
+  // 搜索时临时忽略折叠状态，把命中的色块全部显示出来
+  document.querySelectorAll(".pchip[data-grp]").forEach(function(el){
+    const folded = !k && !OPEN[el.dataset.grp] && (+el.dataset.seq) >= VISIBLE_PER_GROUP;
+    const miss   = !!k && el.dataset.key.indexOf(k) < 0;
+    el.style.display = (folded || miss) ? "none" : "";
   });
-  document.querySelectorAll(".grp").forEach(function(el){
+  document.querySelectorAll(".grp[data-grp]").forEach(function(el){
     const g=el.dataset.grp;
-    const grid=document.querySelector('.pal[data-grp-grid="'+g+'"]');
-    el.style.display = grid.querySelector(".pchip:not(.hide)") ? "" : "none";
+    const hit=document.querySelector('.pchip[data-grp="'+g+'"]:not([style*="display: none"])');
+    el.style.display = hit ? "" : "none";
   });
+}
+$("palSearch").addEventListener("input",function(){
+  applySearch(this.value.trim().toLowerCase());
 });
 
 let statPending=false;
@@ -956,10 +1098,10 @@ function updateStats(){
   arr.forEach(function(e){
     const p=PALETTE[e[0]];
     const wp=Math.max(4, Math.round(e[1]/max*46));
-    html+='<div class="srow" title="'+p.c+' '+p.n+' × '+e[1]+'">'
+    html+='<div class="srow" title="'+p.c+' '+p.gn+' '+p.h+' × '+e[1]+'">'
         + '<i class="sw2" style="background:'+p.h+'"></i>'
         + '<span class="cd">'+p.c+'</span>'
-        + '<span class="nm">'+p.n+'</span>'
+        + '<span class="nm">'+p.gn+'</span>'
         + '<span class="bar" style="width:'+wp+'px"></span>'
         + '<span class="ct">'+e[1]+'</span></div>';
   });
@@ -1089,7 +1231,7 @@ function exportCSV(){
   const arr=statLines();
   if(!arr.length){ toast("画布为空，无法导出"); return; }
   let csv="\ufeff色号,名称,HEX,数量\n";
-  arr.forEach(function(e){ const p=PALETTE[e[0]]; csv+=p.c+","+p.n+","+p.h+","+e[1]+"\n"; });
+  arr.forEach(function(e){ const p=PALETTE[e[0]]; csv+=p.c+","+p.gn+","+p.h+","+e[1]+"\n"; });
   const total=arr.reduce(function(s,e){return s+e[1];},0);
   csv+="合计,,,,"+total+"\n";
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
@@ -1100,7 +1242,7 @@ function exportCSV(){
 function copyList(){
   const arr=statLines();
   if(!arr.length){ toast("画布为空"); return; }
-  const txt=arr.map(function(e){return PALETTE[e[0]].c+" "+PALETTE[e[0]].n+" × "+e[1];}).join("\n");
+  const txt=arr.map(function(e){return PALETTE[e[0]].c+" "+PALETTE[e[0]].gn+" × "+e[1];}).join("\n");
   const done=function(){ toast("清单已复制"); };
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(done,function(){ fallbackCopy(txt,done); });
