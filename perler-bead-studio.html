@@ -434,7 +434,7 @@ body,.topbar,.panel,.stage,.holder,.btn,input,select{
         <div style="height:8px"></div>
         <div class="sw" data-sw="grid"><span>网格线</span><i class="tg on"></i></div>
         <div class="sw" data-sw="ruler"><span>坐标标尺</span><i class="tg on"></i></div>
-        <div class="sw" data-sw="code"><span>色号数字</span><i class="tg"></i></div>
+        <div class="sw" data-sw="code"><span>色号数字</span><i class="tg on"></i></div>
         <div class="row" style="margin-top:6px">
           <label class="lb">视图缩放</label>
           <input type="range" id="rgZoom" min="25" max="200" step="5" value="100">
@@ -660,7 +660,7 @@ const S = {
   tool:"brush",
   color:0,
   mode:"block",              // block | bead
-  showGrid:true, showRuler:true, showCode:false,
+  showGrid:true, showRuler:true, showCode:true,
   showImg:true, dither:false,
   fit:"contain", alpha:0.55,
   zoom:1,
@@ -851,10 +851,16 @@ function drawCell(c,x,y,cell,p,mode,withCode,print){
     }
   }
   if(withCode){
-    const f = Math.max(5, Math.round(cell*0.38));
+    const f = Math.max(5, Math.round(cell*0.32));
     c.font = '700 '+f+'px Consolas,"Segoe UI",sans-serif';
     c.textAlign="center"; c.textBaseline="middle";
-    c.fillStyle = print ? textOn(p.h) : textOn(p.h);
+    // 主字 + 反色描边：在中色（黄/粉/玫红）上更可读
+    const txt = textOn(p.h);
+    c.strokeStyle = txt.indexOf("0,0,0")>=0 ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.55)";
+    c.lineWidth = Math.max(1, Math.round(cell*0.06));
+    c.lineJoin = "round";
+    c.strokeText(p.c, cx, cy+0.5);
+    c.fillStyle = txt;
     c.fillText(p.c, cx, cy+0.5);
   }
 }
@@ -1356,7 +1362,8 @@ function exportPNG(){
   c.fillStyle="#ffffff"; c.fillRect(0,0,cv.width,cv.height);
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){
     const v=S.grid[y*W+x]; if(v<0) continue;
-    drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, S.showCode, true);
+    // 图纸导出时强制画色号 —— 用户要的是“图纸生成时标注色号”，与屏幕开关无关
+    drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, true, true);
   }
   if(S.showGrid) drawGridLines(c,W,H,cell,true);
   const fname="perler-"+W+"x"+H+".png";
