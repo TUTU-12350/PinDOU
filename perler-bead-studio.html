@@ -6,24 +6,93 @@
 <title>拼豆图纸生成器 · Perler Bead Studio</title>
 <style>
 /* ============ 主题变量：暗灰 + 橙色强调 ============ */
+/* ============ 主题变量 ============
+   --stage  画板外的舞台底色（跟随主题）
+   --board / --board2  棋盘格两色，即「选色工作面」。
+   刻意统一保持中性灰：拼豆是选色的活儿，工作面一偏色，豆色判断就跟着偏。
+   浅色主题下 --board 提亮一档，避免在白界面里像个黑洞，但仍在中性灰区间。
+*/
 :root{
-  --bg:#131518;
-  --panel:#191c21;
-  --panel2:#1f232a;
-  --panel3:#262b33;
-  --line:#2c323a;
-  --line2:#3a424c;
-  --text:#e4e8ee;
-  --text2:#a6b0bb;
-  --muted:#6f7a86;
+  /* —— 默认主题：石墨灰 —— */
+  --bg:#1f242a;
+  --panel:#262c33;
+  --panel2:#2d333b;
+  --panel3:#353c45;
+  --line:#3a424c;
+  --line2:#48515c;
+  --text:#e6eaef;
+  --text2:#aab4bf;
+  --muted:#78838f;
   --accent:#ff8a2b;
   --accent2:#ffb066;
   --accent-soft:rgba(255,138,43,.15);
   --danger:#e5534b;
   --ok:#4caf7d;
+  --stage:#1c2126;
+  --board:#525861;
+  --board2:#5b616a;
+  --glow:rgba(255,138,43,.05);
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+  --shadow2:0 8px 26px rgba(0,0,0,.5);
+  --sb:#3d444e;
+  --tg:#39404a;
+  --tgh:#454d58;
+  --tgk:#8b949e;
+  --tgkb:transparent;
+  --rbg:#1c2027;                        /* 标尺底色 */
+  --rline:rgba(255,255,255,.13);        /* 次刻度 / 分隔线 */
+  --rmid:rgba(255,255,255,.32);         /* 中刻度 */
+  --rmajor:rgba(255,138,43,.85);        /* 主刻度（10 格） */
+  --rnum:#ffb066;                       /* 刻度数字 */
   --radius:10px;
   --rs:24px;              /* 标尺厚度（隐藏时为 0） */
   --z:1;                  /* 视图缩放 */
+}
+
+/* —— 主题：中性灰（选色最准） —— */
+[data-theme="neutral"]{
+  --bg:#2b3036; --panel:#333940; --panel2:#3a4048; --panel3:#434951;
+  --line:#474e57; --line2:#555d67;
+  --text:#e8ebee; --text2:#b0b7bf; --muted:#7f878f;
+  --accent:#ff8a2b; --accent2:#ffb066; --accent-soft:rgba(255,138,43,.16);
+  --stage:#262b31; --board:#5a5f65; --board2:#63686e;
+  --glow:rgba(255,138,43,.045);
+  --shadow:0 10px 40px rgba(0,0,0,.35);
+  --sb:#4a515a;
+  --tg:#454c55; --tgh:#525a63; --tgk:#9aa1a9;
+  --rbg:#232830; --rline:rgba(255,255,255,.15); --rmid:rgba(255,255,255,.34);
+  --rmajor:rgba(255,138,43,.9); --rnum:#ffb066;
+}
+
+/* —— 主题：浅色纸感 —— */
+[data-theme="paper"]{
+  --bg:#f2f0ec; --panel:#fbfaf7; --panel2:#ffffff; --panel3:#f0ede7;
+  --line:#ddd8cf; --line2:#cbc5ba;
+  --text:#1d2126; --text2:#545b63; --muted:#8a9098;
+  --accent:#d4620a; --accent2:#a94e07; --accent-soft:rgba(212,98,10,.12);
+  --danger:#c93f37; --ok:#2f8a5e;
+  --stage:#e8e5de; --board:#8e9298; --board2:#979ba0;
+  --glow:rgba(212,98,10,.04);
+  --shadow:0 8px 28px rgba(0,0,0,.16);
+  --shadow2:0 8px 26px rgba(0,0,0,.18);
+  --sb:#c8c3b9;
+  --tg:#ddd8cf; --tgh:#cfc9bf; --tgk:#ffffff; --tgkb:#c0bab0;
+  --rbg:#6b7076; --rline:rgba(255,255,255,.26); --rmid:rgba(255,255,255,.46);
+  --rmajor:#ffb04d; --rnum:#ffd9b0;
+}
+
+/* —— 主题：深夜 —— */
+[data-theme="midnight"]{
+  --bg:#131518; --panel:#191c21; --panel2:#1f232a; --panel3:#262b33;
+  --line:#2c323a; --line2:#3a424c;
+  --text:#e4e8ee; --text2:#a6b0bb; --muted:#6f7a86;
+  --accent:#ff8a2b; --accent2:#ffb066; --accent-soft:rgba(255,138,43,.15);
+  --stage:#131518; --board:#4a4f55; --board2:#53585e;
+  --glow:rgba(255,138,43,.05);
+  --sb:#333a43;
+  --tg:#39404a; --tgh:#454d58; --tgk:#8b949e;
+  --rbg:#171a20; --rline:rgba(255,255,255,.12); --rmid:rgba(255,255,255,.30);
+  --rmajor:rgba(255,138,43,.85); --rnum:#ffb066;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -35,10 +104,10 @@ body{
 /* ============ 滚动条 ============ */
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#333a43;border-radius:8px;border:2px solid transparent;background-clip:padding-box;transition:background .18s}
+::-webkit-scrollbar-thumb{background:var(--sb);border-radius:8px;border:2px solid transparent;background-clip:padding-box;transition:background .18s}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent);background-clip:padding-box}
 ::-webkit-scrollbar-corner{background:transparent}
-*{scrollbar-width:thin;scrollbar-color:#333a43 transparent}
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
 
 /* ============ 骨架布局 ============ */
 .app{height:100vh;display:flex;flex-direction:column}
@@ -93,7 +162,7 @@ label.lb{font-size:11.5px;color:var(--muted);flex:0 0 auto}
 .btn.sm{padding:5px 8px;font-size:11.5px}
 .btn.pri{background:linear-gradient(145deg,var(--accent),#ef7a15);border-color:transparent;color:#20130a;font-weight:700}
 .btn.pri:hover{filter:brightness(1.08);color:#20130a}
-.btn.dgr:hover{border-color:var(--danger);color:#ff8c85;box-shadow:0 4px 12px rgba(229,83,75,.14)}
+.btn.dgr:hover{border-color:var(--danger);color:var(--danger);box-shadow:0 4px 12px rgba(229,83,75,.14)}
 .btn.block{width:100%}
 
 .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
@@ -130,11 +199,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .sw span{flex:1;font-size:12px;color:var(--text2)}
 .sw:hover span{color:var(--text)}
 .tg{
-  width:34px;height:18px;border-radius:10px;background:#39404a;position:relative;
+  width:34px;height:18px;border-radius:10px;background:var(--tg);position:relative;
   flex:0 0 auto;transition:.2s;box-shadow:inset 0 0 0 1px transparent;
 }
-.tg::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#8b949e;transition:.2s}
-.sw:hover .tg{background:#454d58}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--tgk);box-shadow:inset 0 0 0 1px var(--tgkb);transition:.2s}
+.sw:hover .tg{background:var(--tgh)}
 .tg.on{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
 .tg.on::after{left:18px;background:var(--accent)}
 .val{font-size:11px;color:var(--accent2);font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
@@ -145,8 +214,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .stage{
   flex:1 1 auto;min-height:0;display:grid;overflow:auto;padding:16px;
   background:
-    radial-gradient(900px 500px at 50% 0%,rgba(255,138,43,.05),transparent 70%),
-    var(--panel);
+    radial-gradient(900px 500px at 50% 0%,var(--glow),transparent 70%),
+    var(--stage);
   border:1px solid var(--line);border-radius:var(--radius);position:relative;
 }
 /* 关键：用 grid + 子元素 margin:auto 实现水平垂直双向居中，
@@ -165,12 +234,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .rtop{border-bottom:1px solid var(--line);border-radius:0 6px 0 0}
 .rleft{border-right:1px solid var(--line);border-radius:0 0 0 6px}
 .holder{
-  position:relative;background-color:#15181b;
+  position:relative;background-color:var(--board);
   background-image:
-    linear-gradient(45deg,#1a1d22 25%,transparent 25%,transparent 75%,#1a1d22 75%),
-    linear-gradient(45deg,#1a1d22 25%,transparent 25%,transparent 75%,#1a1d22 75%);
+    linear-gradient(45deg,var(--board2) 25%,transparent 25%,transparent 75%,var(--board2) 75%),
+    linear-gradient(45deg,var(--board2) 25%,transparent 25%,transparent 75%,var(--board2) 75%);
   background-size:32px 32px;background-position:0 0,16px 16px;
-  border-radius:0 0 6px 0;box-shadow:0 10px 40px rgba(0,0,0,.45);
+  border-radius:0 0 6px 0;box-shadow:var(--shadow);
 }
 #baseCanvas,#patCanvas{position:absolute;left:0;top:0;display:block}
 #patCanvas{cursor:crosshair;touch-action:none}
@@ -242,8 +311,47 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .toast{
   position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
   background:var(--panel3);border:1px solid var(--accent);color:var(--text);
-  padding:9px 18px;border-radius:9px;font-size:12px;box-shadow:0 8px 26px rgba(0,0,0,.5);
+  padding:9px 18px;border-radius:9px;font-size:12px;box-shadow:var(--shadow2);
   opacity:0;pointer-events:none;transition:.24s;z-index:99;
+}
+
+/* ============ 主题切换器（顶栏色点 + 浮层） ============ */
+.theme-wrap{position:relative;flex:0 0 auto}
+.theme-dot{
+  width:26px;height:26px;border-radius:50%;padding:0;cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line2);
+  display:grid;place-items:center;transition:.16s;
+}
+.theme-dot:hover{border-color:var(--accent);transform:scale(1.08)}
+.theme-dot i{
+  display:block;width:16px;height:16px;border-radius:50%;
+  background:var(--board);box-shadow:inset 0 0 0 1px var(--line2);
+}
+.theme-dot.open{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.theme-pop{
+  position:absolute;top:34px;right:0;width:212px;z-index:60;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:10px;
+  padding:7px;box-shadow:var(--shadow2);
+}
+.theme-pop[hidden]{display:none}
+.tp-t{font-size:10.5px;color:var(--muted);padding:4px 8px 7px;letter-spacing:.5px}
+.tp-item{
+  display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;
+  cursor:pointer;font-size:12.5px;color:var(--text);transition:.12s;
+}
+.tp-item:hover{background:var(--panel3)}
+.tp-item.on{background:var(--accent-soft)}
+.tp-sw{
+  width:20px;height:20px;border-radius:5px;overflow:hidden;
+  display:flex;flex:0 0 auto;box-shadow:inset 0 0 0 1px var(--line2);
+}
+.tp-sw i{flex:1}
+.tp-name{flex:1}
+.tp-chk{color:var(--accent);font-size:12px;width:12px;text-align:center}
+
+/* 切换主题时的柔和过渡（只作用于外壳，不碰画布） */
+body,.topbar,.panel,.stage,.holder,.btn,input,select{
+  transition:background-color .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease;
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
@@ -256,6 +364,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <div class="logo">豆</div>
     <div class="brand">拼豆图纸生成器<small>PERLER BEAD STUDIO</small></div>
     <div class="spacer"></div>
+    <div class="theme-wrap">
+      <button class="theme-dot" id="btnTheme" title="外观主题" aria-haspopup="true" aria-expanded="false"><i></i></button>
+      <div class="theme-pop" id="themePop" hidden>
+        <div class="tp-t">外观主题</div>
+        <div id="themeList"></div>
+      </div>
+    </div>
     <button class="btn sm" id="btnUndo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
     <button class="btn sm" id="btnRedo" title="重做 (Ctrl+Shift+Z)">↷ 重做</button>
     <button class="btn sm pri" id="btnExportPng">导出图纸 PNG</button>
@@ -563,6 +678,7 @@ const rTopCtx=rTop.getContext("2d"), rLeftCtx=rLeft.getContext("2d");
 /* ---------------- 初始化（放在脚本末尾执行，避免 TDZ） ---------------- */
 function boot(){
   S.grid = new Int16Array(S.w*S.h).fill(-1);
+  initTheme();
   buildPalette();
   applySize(S.w,S.h,false);
   pushHistory();
@@ -643,38 +759,48 @@ function drawRulers(){
 function drawRulerX(){
   const c=rTopCtx, w=S.w*CELL, H=RS;
   c.clearRect(0,0,w,H);
-  c.fillStyle="#1c2027"; c.fillRect(0,0,w,H);
+  c.fillStyle=RC.bg; c.fillRect(0,0,w,H);
   c.font='9px Consolas,"Segoe UI",sans-serif'; c.textAlign="center"; c.textBaseline="middle";
   for(let i=0;i<=S.w;i++){
     const x=i*CELL+0.5, major=i%10===0, mid=i%5===0;
-    c.strokeStyle = major?"rgba(255,138,43,.85)":(mid?"rgba(255,255,255,.32)":"rgba(255,255,255,.13)");
+    c.strokeStyle = major?RC.major:(mid?RC.mid:RC.line);
     c.lineWidth = major?1:1;
     c.beginPath(); c.moveTo(x, major?0:H-(major?12:(mid?8:5))); c.lineTo(x,H); c.stroke();
   }
   for(let i=0;i<S.w;i++){
     if(i%10!==0) continue;
-    c.fillStyle="#ffb066";
+    c.fillStyle=RC.num;
     c.fillText(String(i+1), i*CELL+CELL/2, 7);
   }
-  c.strokeStyle="rgba(255,255,255,.14)"; c.beginPath(); c.moveTo(0,H-.5); c.lineTo(w,H-.5); c.stroke();
+  c.strokeStyle=RC.line; c.beginPath(); c.moveTo(0,H-.5); c.lineTo(w,H-.5); c.stroke();
 }
 function drawRulerY(){
   const c=rLeftCtx, W=RS, h=S.h*CELL;
   c.clearRect(0,0,W,h);
-  c.fillStyle="#1c2027"; c.fillRect(0,0,W,h);
+  c.fillStyle=RC.bg; c.fillRect(0,0,W,h);
   c.font='9px Consolas,"Segoe UI",sans-serif'; c.textAlign="center"; c.textBaseline="middle";
   for(let i=0;i<=S.h;i++){
     const y=i*CELL+0.5, major=i%10===0, mid=i%5===0;
-    c.strokeStyle = major?"rgba(255,138,43,.85)":(mid?"rgba(255,255,255,.32)":"rgba(255,255,255,.13)");
+    c.strokeStyle = major?RC.major:(mid?RC.mid:RC.line);
     c.lineWidth = 1;
     c.beginPath(); c.moveTo(major?0:W-(major?12:(mid?8:5)), y); c.lineTo(W,y); c.stroke();
   }
   for(let i=0;i<S.h;i++){
     if(i%10!==0) continue;
     c.save(); c.translate(8, i*CELL+CELL/2); c.rotate(-Math.PI/2);
-    c.fillStyle="#ffb066"; c.fillText(String(i+1),0,0); c.restore();
+    c.fillStyle=RC.num; c.fillText(String(i+1),0,0); c.restore();
   }
-  c.strokeStyle="rgba(255,255,255,.14)"; c.beginPath(); c.moveTo(W-.5,0); c.lineTo(W-.5,h); c.stroke();
+  c.strokeStyle=RC.line; c.beginPath(); c.moveTo(W-.5,0); c.lineTo(W-.5,h); c.stroke();
+}
+/* 标尺配色跟随主题：切换主题后刷新一次即可 */
+let RC={bg:"#1c2027",line:"rgba(255,255,255,.13)",mid:"rgba(255,255,255,.32)",
+        major:"rgba(255,138,43,.85)",num:"#ffb066"};
+function refreshRulerColors(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=function(n){const v=cs.getPropertyValue(n).trim();return v||"";};
+  RC={ bg:g("--rbg")||RC.bg, line:g("--rline")||RC.line, mid:g("--rmid")||RC.mid,
+       major:g("--rmajor")||RC.major, num:g("--rnum")||RC.num };
+  drawRulers();
 }
 
 /* =========================================================================
@@ -1309,6 +1435,69 @@ window.addEventListener("keydown",function(e){
 /* 窗口变化时保持居中 */
 let rt=null;
 window.addEventListener("resize",function(){ clearTimeout(rt); rt=setTimeout(function(){ applyZoom(); },120); });
+
+/* =========================================================================
+   外观主题切换（顶栏色点 + 浮层，选择写入 localStorage）
+   ========================================================================= */
+const THEME_KEY = "pbs.theme";
+// sw = 浮层里的双色预览 [面板色, 画布棋盘格色]
+const THEMES = [
+  {id:"graphite", name:"石墨灰",   sw:["#262c33","#525861"]},
+  {id:"neutral",  name:"中性灰",   sw:["#333940","#5a5f65"]},
+  {id:"paper",    name:"浅色纸感", sw:["#fbfaf7","#8e9298"]},
+  {id:"midnight", name:"深夜",     sw:["#191c21","#4a4f55"]}
+];
+
+function buildThemeList(){
+  const box=$("themeList"); box.innerHTML="";
+  THEMES.forEach(function(t){
+    const el=document.createElement("div");
+    el.className="tp-item"; el.dataset.theme=t.id;
+    el.innerHTML='<span class="tp-sw"><i style="background:'+t.sw[0]+'"></i>'
+               + '<i style="background:'+t.sw[1]+'"></i></span>'
+               + '<span class="tp-name">'+t.name+'</span>'
+               + '<span class="tp-chk"></span>';
+    el.addEventListener("click",function(){ applyTheme(t.id); closeThemePop(); });
+    box.appendChild(el);
+  });
+}
+function applyTheme(id){
+  const t=THEMES.filter(function(x){return x.id===id;})[0];
+  if(!t) id="graphite";
+  document.documentElement.setAttribute("data-theme", id);
+  try{ localStorage.setItem(THEME_KEY, id); }catch(e){}
+  document.querySelectorAll(".tp-item").forEach(function(el){
+    const on = el.dataset.theme===id;
+    el.classList.toggle("on", on);
+    el.querySelector(".tp-chk").textContent = on ? "✓" : "";
+  });
+  $("themePop").querySelector(".tp-t").textContent = "外观主题 · "+t.name;
+  refreshRulerColors();
+}
+function initTheme(){
+  let id=null;
+  try{ id=localStorage.getItem(THEME_KEY); }catch(e){}
+  if(!id || !THEMES.some(function(t){return t.id===id;})) id="graphite";
+  buildThemeList();
+  applyTheme(id);
+}
+function openThemePop(){
+  $("themePop").hidden=false;
+  $("btnTheme").classList.add("open");
+  $("btnTheme").setAttribute("aria-expanded","true");
+}
+function closeThemePop(){
+  $("themePop").hidden=true;
+  $("btnTheme").classList.remove("open");
+  $("btnTheme").setAttribute("aria-expanded","false");
+}
+$("btnTheme").addEventListener("click",function(e){
+  e.stopPropagation();
+  $("themePop").hidden ? openThemePop() : closeThemePop();
+});
+$("themePop").addEventListener("click",function(e){ e.stopPropagation(); });
+document.addEventListener("click",function(){ if(!$("themePop").hidden) closeThemePop(); });
+window.addEventListener("keydown",function(e){ if(e.key==="Escape") closeThemePop(); });
 
 /* ---------------- 启动 ---------------- */
 boot();
