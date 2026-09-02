@@ -218,6 +218,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     var(--stage);
   border:1px solid var(--line);border-radius:var(--radius);position:relative;
 }
+.stage.panning{cursor:grabbing;user-select:none}
+.stage.panning .holder{cursor:grabbing}
 /* 关键：用 grid + 子元素 margin:auto 实现水平垂直双向居中，
    内容超出时不裁切顶部/左侧（justify-content:center 会导致画布偏上被裁） */
 .zoomwrap{margin:auto;transform-origin:0 0}
@@ -437,10 +439,11 @@ body,.topbar,.panel,.stage,.holder,.btn,input,select{
         <div class="sw" data-sw="code"><span>色号数字</span><i class="tg on"></i></div>
         <div class="row" style="margin-top:6px">
           <label class="lb">视图缩放</label>
-          <input type="range" id="rgZoom" min="25" max="200" step="5" value="100">
+          <input type="range" id="rgZoom" min="25" max="800" step="5" value="100">
           <span class="val" id="lbZoom">100%</span>
         </div>
         <button class="btn sm block" id="btnFit">适应窗口</button>
+        <div class="hint" style="margin-top:6px">滚轮缩放 · 中键拖动平移 · Shift+滚轮上下滚</div>
       </div>
 
       <div class="sec">
@@ -469,6 +472,16 @@ body,.topbar,.panel,.stage,.holder,.btn,input,select{
 
       <div class="sec">
         <div class="sec-t">导出 / 项目</div>
+        <div class="row">
+          <label class="lb">图纸画质</label>
+          <select id="selExportScale">
+            <option value="auto" selected>4K 自适应（长边 3840px）</option>
+            <option value="4">超清 4×（64px/格）</option>
+            <option value="2">高清 2×（32px/格）</option>
+            <option value="1">标准 1×（16px/格）</option>
+          </select>
+        </div>
+        <div class="hint" id="hintExport" style="margin:-4px 0 8px">当前：—</div>
         <div class="grid2">
           <button class="btn sm" id="btnExportPng2">图纸 PNG</button>
           <button class="btn sm" id="btnExportCsv">用料 CSV</button>
@@ -684,6 +697,7 @@ function boot(){
   pushHistory();
   selectColor(0);
   updateStatus();
+  updateExportHint();
 }
 
 /* =========================================================================
@@ -718,7 +732,11 @@ function applySize(w,h,keep){
   layoutRulers();
   applyZoom();
   drawBase(); drawPattern(); drawRulers(); updateStats(); updateStatus();
+  updateExportHint();
 }
+
+const ZMIN=0.25, ZMAX=8;
+function clampZ(z){ return Math.max(ZMIN, Math.min(ZMAX, Math.round(z*100)/100)); }
 
 function applyZoom(){
   stack.style.setProperty("--z", S.zoom);
@@ -730,12 +748,63 @@ function applyZoom(){
   $("rgZoom").value = Math.round(S.zoom*100);
 }
 
+/* 以某个屏幕点为锚点缩放：该点在画布内容里的位置保持不动。
+   zoomwrap 用 margin:auto 居中，缩放后其 offsetLeft/offsetTop 会变，
+   所以必须先记旧位置算出内容坐标 u,v，applyZoom 之后再按新位置反解 scroll。 */
+function zoomAt(z, clientX, clientY){
+  const nz = clampZ(z);
+  if(nz === S.zoom) return;
+  const r = stage.getBoundingClientRect();
+  const mx = clientX - r.left, my = clientY - r.top;   // 鼠标在 stage 视口内的位置
+  const zr = zoomwrap;
+  const Lx = zr.offsetLeft, Ly = zr.offsetTop;         // 缩放前 zoomwrap 在内容区的左上角
+  const u = (stage.scrollLeft + mx - Lx) / S.zoom;     // 该点对应的 zoomwrap 内未缩放坐标
+  const v = (stage.scrollTop  + my - Ly) / S.zoom;
+  S.zoom = nz;
+  applyZoom();
+  const Lx2 = zr.offsetLeft, Ly2 = zr.offsetTop;       // 缩放后位置（居中会重算）
+  stage.scrollLeft = Lx2 + u*nz - mx;
+  stage.scrollTop  = Ly2 + v*nz - my;
+}
+
+/* 滚轮缩放：无修饰键 = 以光标为锚点缩放；Shift+滚轮 = 交还原生滚动 */
+stage.addEventListener("wheel", function(e){
+  if(e.shiftKey) return;
+  e.preventDefault();
+  const dir = e.deltaY < 0 ? 1 : -1;
+  const step = e.deltaMode === 1 ? 0.25 : 0.12;        // 行滚动时步子大一点
+  zoomAt(S.zoom * (dir > 0 ? 1+step : 1/(1+step)), e.clientX, e.clientY);
+}, {passive:false});
+
+/* 中键拖动平移（不影响画笔：画笔在 pointerdown 处直接让位给 pan） */
+stage.addEventListener("pointerdown", function(e){
+  if(e.button!==1) return;
+  e.preventDefault();
+  startPan(e);
+});
+let panning=false, panX=0, panY=0;
+function startPan(e){
+  panning=true; panX=e.clientX; panY=e.clientY;
+  stage.classList.add("panning");
+  try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+}
+stage.addEventListener("pointermove", function(e){
+  if(!panning) return;
+  stage.scrollLeft -= (e.clientX - panX);
+  stage.scrollTop  -= (e.clientY - panY);
+  panX=e.clientX; panY=e.clientY;
+});
+function endPan(){ if(!panning) return; panning=false; stage.classList.remove("panning"); }
+window.addEventListener("pointerup", endPan);
+window.addEventListener("pointercancel", endPan);
+stage.addEventListener("auxclick", function(e){ if(e.button===1) e.preventDefault(); });
+
 function fitToView(){
   const rs = S.showRuler ? RS : 0;
   const w = rs + S.w*CELL, h = rs + S.h*CELL;
   const pad = 40;
-  const z = Math.min((stage.clientWidth-pad)/w, (stage.clientHeight-pad)/h, 2);
-  S.zoom = Math.max(0.25, Math.min(2, Math.round(z*100)/100));
+  const z = Math.min((stage.clientWidth-pad)/w, (stage.clientHeight-pad)/h, ZMAX);
+  S.zoom = clampZ(z);
   applyZoom();
 }
 
@@ -827,6 +896,18 @@ function textOn(hex){
   return l>0.56 ? "rgba(0,0,0,.78)" : "rgba(255,255,255,.88)";
 }
 
+/* 色号文字配色。strong=true 用于导出图纸：提高不透明度 + 加重描边，
+   在大图（4K）上笔画更实、更锐利。返回 {fill, halo}。 */
+function codeInk(hex,strong){
+  const [r,g,b]=hex2rgb(hex);
+  const l=(0.299*r+0.587*g+0.114*b)/255;
+  return l>0.56
+    ? { fill: strong?"rgba(0,0,0,.94)"      :"rgba(0,0,0,.78)",
+        halo: strong?"rgba(255,255,255,.85)":"rgba(255,255,255,.55)" }
+    : { fill: strong?"rgba(255,255,255,.98)":"rgba(255,255,255,.88)",
+        halo: strong?"rgba(0,0,0,.85)"      :"rgba(0,0,0,.55)" };
+}
+
 /** 绘制单个单元格（x,y 为左上角，尺寸 cell） */
 function drawCell(c,x,y,cell,p,mode,withCode,print){
   const cx=x+cell/2, cy=y+cell/2;
@@ -851,16 +932,18 @@ function drawCell(c,x,y,cell,p,mode,withCode,print){
     }
   }
   if(withCode){
-    const f = Math.max(5, Math.round(cell*0.32));
+    // 导出时字号放大到 0.36 倍格宽（4K 下约 23px），并加粗描边，保证清晰可辨
+    const ratio = print ? 0.36 : 0.32;
+    const f = Math.max(5, Math.round(cell*ratio));
     c.font = '700 '+f+'px Consolas,"Segoe UI",sans-serif';
     c.textAlign="center"; c.textBaseline="middle";
     // 主字 + 反色描边：在中色（黄/粉/玫红）上更可读
-    const txt = textOn(p.h);
-    c.strokeStyle = txt.indexOf("0,0,0")>=0 ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.55)";
-    c.lineWidth = Math.max(1, Math.round(cell*0.06));
-    c.lineJoin = "round";
+    const ink = codeInk(p.h, print);
+    c.strokeStyle = ink.halo;
+    c.lineWidth = Math.max(1, print ? cell*0.075 : Math.round(cell*0.06));
+    c.lineJoin = "round"; c.miterLimit = 2;
     c.strokeText(p.c, cx, cy+0.5);
-    c.fillStyle = txt;
+    c.fillStyle = ink.fill;
     c.fillText(p.c, cx, cy+0.5);
   }
 }
@@ -881,17 +964,27 @@ function drawPattern(){
   if(S.showGrid) drawGridLines(c,W,H,CELL,false);
 }
 
+/* 网格线粗细随格子尺寸走：屏幕 16px 格仍是 1px 细线，
+   4K 导出（格子 64px 以上）自动加粗，否则线会被"稀释"到几乎看不见。 */
 function drawGridLines(c,W,H,cell,print){
-  c.lineWidth=1;
+  const thin = Math.max(1, cell/24);
+  const bold = Math.max(1, cell/12);
+  const snap = function(v,w){ return w%2===0 ? Math.round(v) : Math.round(v)+0.5; };
   for(let x=0;x<=W;x++){
-    c.strokeStyle = print ? (x%10===0?"rgba(0,0,0,.42)":"rgba(0,0,0,.16)")
-                          : (x%10===0?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
-    c.beginPath(); c.moveTo(x*cell+0.5,0); c.lineTo(x*cell+0.5,H*cell); c.stroke();
+    const major = x%10===0, lw = major?bold:thin;
+    c.lineWidth = lw;
+    c.strokeStyle = print ? (major?"rgba(0,0,0,.46)":"rgba(0,0,0,.17)")
+                          : (major?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
+    const px = snap(x*cell, lw);
+    c.beginPath(); c.moveTo(px,0); c.lineTo(px,H*cell); c.stroke();
   }
   for(let y=0;y<=H;y++){
-    c.strokeStyle = print ? (y%10===0?"rgba(0,0,0,.42)":"rgba(0,0,0,.16)")
-                          : (y%10===0?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
-    c.beginPath(); c.moveTo(0,y*cell+0.5); c.lineTo(W*cell,y*cell+0.5); c.stroke();
+    const major = y%10===0, lw = major?bold:thin;
+    c.lineWidth = lw;
+    c.strokeStyle = print ? (major?"rgba(0,0,0,.46)":"rgba(0,0,0,.17)")
+                          : (major?"rgba(255,255,255,.22)":"rgba(255,255,255,.09)");
+    const py = snap(y*cell, lw);
+    c.beginPath(); c.moveTo(0,py); c.lineTo(W*cell,py); c.stroke();
   }
 }
 
@@ -1076,6 +1169,7 @@ function line(x0,y0,x1,y1,val){
 
 patCv.addEventListener("contextmenu",function(e){e.preventDefault();});
 patCv.addEventListener("pointerdown",function(e){
+  if(e.button===1) return;                 // 中键让位给平移
   const c=cellFromEvent(e); if(!c) return;
   try{ patCv.setPointerCapture(e.pointerId); }catch(err){}
   tempEraser = (e.button===2);
@@ -1313,8 +1407,9 @@ $("btnRotR").addEventListener("click",function(){ rotate90(true); });
 $("btnRotL").addEventListener("click",function(){ rotate90(false); });
 $("btnClear").addEventListener("click",clearCanvas);
 
-$("rgZoom").addEventListener("input",function(){ S.zoom=this.value/100; applyZoom(); });
+$("rgZoom").addEventListener("input",function(){ S.zoom=clampZ(this.value/100); applyZoom(); });
 $("btnFit").addEventListener("click",fitToView);
+$("selExportScale").addEventListener("change", updateExportHint);
 $("rgAlpha").addEventListener("input",function(){
   S.alpha=this.value/100; $("lbAlpha").textContent=this.value+"%"; drawBase();
 });
@@ -1354,8 +1449,29 @@ function download(name,url,revoke){
     clean(); return !!w;
   }
 }
+/* 导出倍数：auto = 长边凑到 3840px（4K），倍率 1~40（每格 16~640px）。
+   倍率上限 40 是为了让 8×8、16×16 这类小画布也能真正给到 3840 长边；
+   再受浏览器 canvas 上限保护（单边 ≤16384、总面积 ≤1.2 亿像素），超了就自动降档。 */
+function exportScale(){
+  const v=$("selExportScale").value;
+  let sc = (v==="auto")
+    ? Math.max(1, Math.min(40, Math.ceil(3840/(Math.max(S.w,S.h)*CELL))))
+    : (+v || 1);
+  const MAXSIDE=16384, MAXAREA=120e6;
+  while(sc>1){
+    const pw=S.w*CELL*sc, ph=S.h*CELL*sc;
+    if(pw<=MAXSIDE && ph<=MAXSIDE && pw*ph<=MAXAREA) break;
+    sc--;
+  }
+  return sc;
+}
+function updateExportHint(){
+  const sc=exportScale(), pw=S.w*CELL*sc, ph=S.h*CELL*sc;
+  $("hintExport").textContent =
+    "当前："+pw+" × "+ph+" px（"+S.w+"×"+S.h+" 格 / 每格 "+Math.round(CELL*sc)+"px）";
+}
 function exportPNG(){
-  const scale=2, cell=CELL*scale, W=S.w, H=S.h;
+  const scale=exportScale(), cell=CELL*scale, W=S.w, H=S.h;
   const cv=document.createElement("canvas");
   cv.width=W*cell; cv.height=H*cell;
   const c=cv.getContext("2d");
@@ -1366,7 +1482,9 @@ function exportPNG(){
     drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, true, true);
   }
   if(S.showGrid) drawGridLines(c,W,H,cell,true);
-  const fname="perler-"+W+"x"+H+".png";
+  const fname="perler-"+W+"x"+H+"-"+cv.width+"px.png";
+  const big = cv.width>=3000 || cv.height>=3000;
+  if(big) toast("正在生成 "+cv.width+"×"+cv.height+" 图纸…");
   // 用 toBlob 而不是 toDataURL：blob 更省内存，且不受 data: URL 的长度/下载限制
   if(cv.toBlob){
     cv.toBlob(function(blob){
