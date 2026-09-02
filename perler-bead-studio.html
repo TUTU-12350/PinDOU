@@ -1330,9 +1330,23 @@ $("fileImg").addEventListener("change",function(e){
 });
 
 /* 导出 */
-function download(name,url){
-  const a=document.createElement("a"); a.href=url; a.download=name;
-  document.body.appendChild(a); a.click(); a.remove();
+/* 下载文件。
+   注意：页面被嵌在预览面板的 iframe 里时，a[download] 会被浏览器静默忽略
+   （点了没反应、也不报错）。这里检测到 iframe 就直接新窗口打开，
+   用户右键「另存为」即可。返回 true 表示已直接下载。 */
+function download(name,url,revoke){
+  const clean=function(){ if(revoke) setTimeout(function(){ URL.revokeObjectURL(url); },4000); };
+  try{
+    if(window.self!==window.top) throw new Error("in-iframe");
+    const a=document.createElement("a");
+    a.href=url; a.download=name; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    clean(); return true;
+  }catch(e){
+    let w=null;
+    try{ w=window.open(url,"_blank"); }catch(e2){}
+    clean(); return !!w;
+  }
 }
 function exportPNG(){
   const scale=2, cell=CELL*scale, W=S.w, H=S.h;
@@ -1345,8 +1359,18 @@ function exportPNG(){
     drawCell(c, x*cell, y*cell, cell, PALETTE[v], S.mode, S.showCode, true);
   }
   if(S.showGrid) drawGridLines(c,W,H,cell,true);
-  download("perler-"+W+"x"+H+".png", cv.toDataURL("image/png"));
-  toast("图纸 PNG 已导出");
+  const fname="perler-"+W+"x"+H+".png";
+  // 用 toBlob 而不是 toDataURL：blob 更省内存，且不受 data: URL 的长度/下载限制
+  if(cv.toBlob){
+    cv.toBlob(function(blob){
+      if(!blob){ toast("导出失败，请重试"); return; }
+      const saved=download(fname, URL.createObjectURL(blob), true);
+      toast(saved ? ("图纸 PNG 已导出："+fname) : "已新窗口打开，右键「图片另存为」");
+    },"image/png");
+  }else{
+    const saved=download(fname, cv.toDataURL("image/png"), false);
+    toast(saved ? ("图纸 PNG 已导出："+fname) : "已新窗口打开，右键「图片另存为」");
+  }
 }
 function statLines(){
   const counts=new Map();
@@ -1361,9 +1385,8 @@ function exportCSV(){
   const total=arr.reduce(function(s,e){return s+e[1];},0);
   csv+="合计,,,,"+total+"\n";
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  download("perler-bom.csv", url);
-  setTimeout(function(){URL.revokeObjectURL(url);},3000);
-  toast("用料 CSV 已导出");
+  const saved=download("perler-bom.csv", url, true);
+  toast(saved ? "用料 CSV 已导出：perler-bom.csv" : "已新窗口打开 CSV，请手动保存");
 }
 function copyList(){
   const arr=statLines();
@@ -1383,9 +1406,8 @@ function fallbackCopy(txt,cb){
 function saveProject(){
   const obj={v:1,w:S.w,h:S.h,mode:S.mode,d:Array.from(S.grid)};
   const url=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:"application/json"}));
-  download("perler-project.json",url);
-  setTimeout(function(){URL.revokeObjectURL(url);},3000);
-  toast("项目已保存");
+  const saved=download("perler-project.json",url,true);
+  toast(saved ? "项目已保存：perler-project.json" : "已新窗口打开项目文件，请手动保存");
 }
 $("fileProj").addEventListener("change",function(e){
   const f=e.target.files&&e.target.files[0]; if(!f) return;
