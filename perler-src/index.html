@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>拼豆图纸生成器 · Perler Bead Studio</title>
+<!-- CSS -->
+<link rel="stylesheet" href="css/00-theme-vars.css">
+<link rel="stylesheet" href="css/01-layout.css">
+<link rel="stylesheet" href="css/02-panel.css">
+<!-- /CSS -->
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <div class="topbar">
+    <div class="logo">豆</div>
+    <div class="brand">拼豆图纸生成器<small>PERLER BEAD STUDIO</small></div>
+    <div class="spacer"></div>
+    <div class="theme-wrap">
+      <button class="theme-dot" id="btnTheme" title="外观主题" aria-haspopup="true" aria-expanded="false"><i></i></button>
+      <div class="theme-pop" id="themePop" hidden>
+        <div class="tp-t">外观主题</div>
+        <div id="themeList"></div>
+      </div>
+    </div>
+    <button class="btn sm" id="btnUndo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+    <button class="btn sm" id="btnRedo" title="重做 (Ctrl+Shift+Z)">↷ 重做</button>
+    <button class="btn sm pri" id="btnExportPng">导出图纸 PNG</button>
+  </div>
+
+  <div class="main">
+
+    <!-- ================= 左侧：功能控制 ================= -->
+    <aside class="panel" id="leftPanel">
+
+      <div class="sec">
+        <div class="sec-t">画布尺寸 <span class="tail">4 ~ 100</span></div>
+        <div class="row">
+          <input type="number" id="inW" min="4" max="100" step="1" value="60">
+          <span style="color:var(--muted)">×</span>
+          <input type="number" id="inH" min="4" max="100" step="1" value="60">
+          <button class="btn sm" id="btnApplySize">应用</button>
+        </div>
+        <div class="grid3" id="presets">
+          <button class="btn sm" data-n="16">16×16</button>
+          <button class="btn sm" data-n="24">24×24</button>
+          <button class="btn sm" data-n="32">32×32</button>
+          <button class="btn sm" data-n="40">40×40</button>
+          <button class="btn sm" data-n="48">48×48</button>
+          <button class="btn sm" data-n="60">60×60</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">绘图工具</div>
+        <div class="seg" id="tools">
+          <button class="btn on" data-tool="brush">✏️ 画笔</button>
+          <button class="btn" data-tool="eraser">🧽 橡皮</button>
+          <button class="btn" data-tool="picker">💧 取色器</button>
+        </div>
+        <div class="hint">左键绘制 · 右键临时橡皮 · 快捷键 B / E / I</div>
+        <div class="grid2">
+          <button class="btn sm" id="btnUndo2">↶ 撤销</button>
+          <button class="btn sm" id="btnRedo2">↷ 重做</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">图案变换</div>
+        <div class="grid2">
+          <button class="btn sm" id="btnFlipH">⇋ 水平镜像</button>
+          <button class="btn sm" id="btnFlipV">⇅ 垂直镜像</button>
+          <button class="btn sm" id="btnRotR">↻ 顺时针 90°</button>
+          <button class="btn sm" id="btnRotL">↺ 逆时针 90°</button>
+        </div>
+        <button class="btn sm block dgr" id="btnClear" style="margin-top:7px">清空画布</button>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">视图</div>
+        <div class="row"><label class="lb">预览模式</label></div>
+        <div class="seg" id="modes">
+          <button class="btn on" data-mode="block">色块图纸</button>
+          <button class="btn" data-mode="bead">仿真豆子</button>
+        </div>
+        <div style="height:8px"></div>
+        <div class="sw" data-sw="grid"><span>网格线</span><i class="tg on"></i></div>
+        <div class="sw" data-sw="ruler"><span>坐标标尺</span><i class="tg on"></i></div>
+        <div class="sw" data-sw="code"><span>色号数字</span><i class="tg on"></i></div>
+        <div class="row" style="margin-top:6px">
+          <label class="lb">视图缩放</label>
+          <input type="range" id="rgZoom" min="25" max="800" step="5" value="100">
+          <span class="val" id="lbZoom">100%</span>
+        </div>
+        <button class="btn sm block" id="btnFit">适应窗口</button>
+        <div class="hint" style="margin-top:6px">滚轮缩放 · 中键拖动平移 · Shift+滚轮上下滚</div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">参考底图</div>
+        <label class="btn block" style="margin-bottom:8px">
+          <input type="file" id="fileImg" accept="image/*" hidden>📁 上传本地图片
+        </label>
+        <div class="row">
+          <label class="lb">填充</label>
+          <select id="selFit">
+            <option value="contain">适应画布（保持比例）</option>
+            <option value="stretch">拉伸填满</option>
+          </select>
+        </div>
+        <div class="row">
+          <label class="lb">透明度</label>
+          <input type="range" id="rgAlpha" min="5" max="100" step="1" value="55">
+          <span class="val" id="lbAlpha">55%</span>
+        </div>
+        <div class="sw" data-sw="showimg"><span>显示底图</span><i class="tg on"></i></div>
+        <div class="sw" data-sw="dither"><span>转换时误差扩散</span><i class="tg"></i></div>
+        <button class="btn sm block dgr" id="btnDelImg" style="margin-bottom:8px">移除底图</button>
+        <button class="btn pri block" id="btnConvert">✨ 一键转为拼豆图纸</button>
+        <div class="hint">按当前画布尺寸采样，使用 RGB 欧式距离匹配最接近的拼豆色号。</div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">导出 / 项目</div>
+        <div class="row">
+          <label class="lb">图纸画质</label>
+          <select id="selExportScale">
+            <option value="auto" selected>4K 自适应（长边 3840px）</option>
+            <option value="4">超清 4×（64px/格）</option>
+            <option value="2">高清 2×（32px/格）</option>
+            <option value="1">标准 1×（16px/格）</option>
+          </select>
+        </div>
+        <div class="hint" id="hintExport" style="margin:-4px 0 8px">当前：—</div>
+        <div class="grid2">
+          <button class="btn sm" id="btnExportPng2">图纸 PNG</button>
+          <button class="btn sm" id="btnExportCsv">用料 CSV</button>
+          <button class="btn sm" id="btnSave">保存项目</button>
+          <label class="btn sm" style="margin:0"><input type="file" id="fileProj" accept=".json" hidden>打开项目</label>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ================= 中间：画布预览 ================= -->
+    <section class="center">
+      <div class="stage" id="stage">
+        <div class="zoomwrap" id="zoomwrap">
+          <div class="stack" id="stack">
+            <div class="ruler corner" id="corner"></div>
+            <canvas class="ruler rtop" id="rulerTop"></canvas>
+            <canvas class="ruler rleft" id="rulerLeft"></canvas>
+            <div class="holder" id="holder">
+              <canvas id="baseCanvas"></canvas><!-- 底层：参考底图 -->
+              <canvas id="patCanvas"></canvas><!-- 上层：像素图纸 -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span>画布 <b id="stSize">60 × 60</b></span>
+        <span>光标 <b id="stPos">—</b></span>
+        <span>工具 <b id="stTool">画笔</b></span>
+        <span>豆数 <b id="stCount">0</b></span>
+        <span>用色 <b id="stColors">0</b></span>
+        <span>历史 <b id="stHist">0/0</b></span>
+        <span class="k" style="margin-left:auto">Ctrl+Z 撤销 · Ctrl+Shift+Z 重做 · G 网格 · R 标尺 · N 色号</span>
+      </div>
+    </section>
+
+    <!-- ================= 右侧：色板 + 用料统计 ================= -->
+    <aside class="panel" id="rightPanel">
+      <div class="sec">
+        <div class="sec-t">当前颜色</div>
+        <div class="cur">
+          <div class="chip" id="curChip"></div>
+          <div class="meta">
+            <div class="cname" id="curName">白色</div>
+            <div class="ccode" id="curCode">A01</div>
+            <div class="chex" id="curHex">#FFFFFF</div>
+          </div>
+        </div>
+        <input type="text" id="palSearch" placeholder="搜索色号 / 名称…">
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">拼豆色板 <span class="tail" id="palCount">221 色</span></div>
+        <div id="palBox"></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">用料统计</div>
+        <div class="sum">
+          <span class="n" id="sumTotal">0</span><span class="u">颗</span>
+          <span class="r" id="sumKinds">0 种颜色</span>
+        </div>
+        <div class="slist" id="statList"><div class="empty">画布是空的<br>开始绘制或一键转图纸吧</div></div>
+        <div class="tools-mini" style="margin-top:9px">
+          <button class="btn sm" id="btnCopyList" style="flex:1">复制清单</button>
+          <button class="btn sm" id="btnExportCsv2" style="flex:1">导出 CSV</button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- JS -->
+<script src="js/00-palette-data.js"></script>
+<script src="js/01-state.js"></script>
+<script src="js/02-transform.js"></script>
+<script src="js/03-render.js"></script>
+<script src="js/04-convert.js"></script>
+<script src="js/05-pattern-ops.js"></script>
+<script src="js/06-history.js"></script>
+<script src="js/07-draw.js"></script>
+<script src="js/08-panel.js"></script>
+<script src="js/09-controls.js"></script>
+<script src="js/10-export.js"></script>
+<script src="js/11-theme-boot.js"></script>
+<!-- /JS -->
+</body>
+</html>

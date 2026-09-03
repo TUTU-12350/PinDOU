@@ -1,0 +1,104 @@
+/* ============ 主题变量：暗灰 + 橙色强调 ============ */
+/* ============ 主题变量 ============
+   --stage  画板外的舞台底色（跟随主题）
+   --board / --board2  棋盘格两色，即「选色工作面」。
+   刻意统一保持中性灰：拼豆是选色的活儿，工作面一偏色，豆色判断就跟着偏。
+   浅色主题下 --board 提亮一档，避免在白界面里像个黑洞，但仍在中性灰区间。
+*/
+:root{
+  /* —— 默认主题：石墨灰 —— */
+  --bg:#1f242a;
+  --panel:#262c33;
+  --panel2:#2d333b;
+  --panel3:#353c45;
+  --line:#3a424c;
+  --line2:#48515c;
+  --text:#e6eaef;
+  --text2:#aab4bf;
+  --muted:#78838f;
+  --accent:#ff8a2b;
+  --accent2:#ffb066;
+  --accent-soft:rgba(255,138,43,.15);
+  --danger:#e5534b;
+  --ok:#4caf7d;
+  --stage:#1c2126;
+  --board:#525861;
+  --board2:#5b616a;
+  --glow:rgba(255,138,43,.05);
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+  --shadow2:0 8px 26px rgba(0,0,0,.5);
+  --sb:#3d444e;
+  --tg:#39404a;
+  --tgh:#454d58;
+  --tgk:#8b949e;
+  --tgkb:transparent;
+  --rbg:#1c2027;                        /* 标尺底色 */
+  --rline:rgba(255,255,255,.13);        /* 次刻度 / 分隔线 */
+  --rmid:rgba(255,255,255,.32);         /* 中刻度 */
+  --rmajor:rgba(255,138,43,.85);        /* 主刻度（10 格） */
+  --rnum:#ffb066;                       /* 刻度数字 */
+  --radius:10px;
+  --rs:24px;              /* 标尺厚度（隐藏时为 0） */
+  --z:1;                  /* 视图缩放 */
+}
+
+/* —— 主题：中性灰（选色最准） —— */
+[data-theme="neutral"]{
+  --bg:#2b3036; --panel:#333940; --panel2:#3a4048; --panel3:#434951;
+  --line:#474e57; --line2:#555d67;
+  --text:#e8ebee; --text2:#b0b7bf; --muted:#7f878f;
+  --accent:#ff8a2b; --accent2:#ffb066; --accent-soft:rgba(255,138,43,.16);
+  --stage:#262b31; --board:#5a5f65; --board2:#63686e;
+  --glow:rgba(255,138,43,.045);
+  --shadow:0 10px 40px rgba(0,0,0,.35);
+  --sb:#4a515a;
+  --tg:#454c55; --tgh:#525a63; --tgk:#9aa1a9;
+  --rbg:#232830; --rline:rgba(255,255,255,.15); --rmid:rgba(255,255,255,.34);
+  --rmajor:rgba(255,138,43,.9); --rnum:#ffb066;
+}
+
+/* —— 主题：浅色纸感 —— */
+[data-theme="paper"]{
+  --bg:#f2f0ec; --panel:#fbfaf7; --panel2:#ffffff; --panel3:#f0ede7;
+  --line:#ddd8cf; --line2:#cbc5ba;
+  --text:#1d2126; --text2:#545b63; --muted:#8a9098;
+  --accent:#d4620a; --accent2:#a94e07; --accent-soft:rgba(212,98,10,.12);
+  --danger:#c93f37; --ok:#2f8a5e;
+  --stage:#e8e5de; --board:#8e9298; --board2:#979ba0;
+  --glow:rgba(212,98,10,.04);
+  --shadow:0 8px 28px rgba(0,0,0,.16);
+  --shadow2:0 8px 26px rgba(0,0,0,.18);
+  --sb:#c8c3b9;
+  --tg:#ddd8cf; --tgh:#cfc9bf; --tgk:#ffffff; --tgkb:#c0bab0;
+  --rbg:#6b7076; --rline:rgba(255,255,255,.26); --rmid:rgba(255,255,255,.46);
+  --rmajor:#ffb04d; --rnum:#ffd9b0;
+}
+
+/* —— 主题：深夜 —— */
+[data-theme="midnight"]{
+  --bg:#131518; --panel:#191c21; --panel2:#1f232a; --panel3:#262b33;
+  --line:#2c323a; --line2:#3a424c;
+  --text:#e4e8ee; --text2:#a6b0bb; --muted:#6f7a86;
+  --accent:#ff8a2b; --accent2:#ffb066; --accent-soft:rgba(255,138,43,.15);
+  --stage:#131518; --board:#4a4f55; --board2:#53585e;
+  --glow:rgba(255,138,43,.05);
+  --sb:#333a43;
+  --tg:#39404a; --tgh:#454d58; --tgk:#8b949e;
+  --rbg:#171a20; --rline:rgba(255,255,255,.12); --rmid:rgba(255,255,255,.30);
+  --rmajor:rgba(255,138,43,.85); --rnum:#ffb066;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:13px/1.55 "PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+/* ============ 滚动条 ============ */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sb);border-radius:8px;border:2px solid transparent;background-clip:padding-box;transition:background .18s}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
+
